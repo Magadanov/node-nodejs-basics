@@ -1,20 +1,27 @@
-import fs from "fs/promises";
+import { copyFile, mkdir, readdir } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const source = join(__dirname, "files");
+const destination = join(__dirname, "files_copy");
 
 const copy = async () => {
   // Write your code here
-  const source = "src/fs/files";
-  const destination = "src/fs/files_copy";
-
   try {
-    await fs.access(source);
-    await fs.access(destination);
+    const files = await readdir(source);
+
+    await mkdir(destination);
+
+    await Promise.all(
+      files.map(async (file) => {
+        const sourcePath = join(source, file);
+        const destinationPath = join(destination, file);
+        await copyFile(sourcePath, destinationPath);
+      })
+    );
+  } catch {
     throw new Error("FS operation failed");
-  } catch (err) {
-    if (err.code == "ENOENT") {
-      await fs.cp(source, destination, { recursive: true });
-    } else {
-      throw err;
-    }
   }
 };
 
