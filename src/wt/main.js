@@ -1,4 +1,4 @@
-import { Worker, isMainThread, parentPort } from "worker_threads";
+import { Worker } from "worker_threads";
 import os from "os";
 import path from "path";
 
@@ -9,30 +9,30 @@ const performCalculations = async () => {
   const results = [];
 
   for (let i = 0; i < cpus; i++) {
-    const worker = new Worker(path.resolve("src/wt/worker.js"));
-    workers.push(worker);
+    const workerPath = new URL("./worker.js", import.meta.url);
+    const worker = new Worker(workerPath, { workerData: 10 + i });
 
     worker.postMessage(10 + i);
 
-    worker.on("message", (result) => {
-      results[i] = result;
+    worker.on("message", (data) => {
+      results.push({ status: "resolved", data });
     });
 
     worker.on("error", (error) => {
-      results[i] = { status: "error", data: null };
+      results.push({ status: "error", data: null });
     });
 
     worker.on("exit", (code) => {
       console.log("\nExit.");
     });
+
+    workers.push(worker);
   }
 
   await Promise.all(
     workers.map((worker) => {
       return new Promise((resolve) => {
-        worker.on("exit", () => {
-          resolve();
-        });
+        worker.on("exit", resolve);
       });
     })
   );
